@@ -22,7 +22,7 @@ public class DefaultControllerAdvice {
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
         List<String> camposErros = new ArrayList<>();
         for (var error : ex.getFieldErrors()) {
-            camposErros.add(String.format("%s %s", error.getField(), error.getDefaultMessage()));
+            camposErros.add(String.format("%s: %s", error.getField(), error.getDefaultMessage()));
         }
         ErrorResponse error = new ErrorResponse("Erro de validação", ex.getMessage(), camposErros);
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
