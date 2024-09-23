@@ -1,7 +1,6 @@
 package edu.ifba.saj.demo_crud.controller;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.BDDMockito;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -10,7 +9,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import java.util.List;
 
@@ -18,7 +16,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static edu.ifba.saj.demo_crud.constants.ApiPathConstants.API_PESSOA;
-import static org.mockito.Answers.valueOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -135,6 +132,61 @@ public class PessoaControllerTest {
         .andExpect(MockMvcResultMatchers.status().isOk())
         .andExpect(jsonPath("$.id").value("1"))
         .andExpect(jsonPath("$.nome").value("Felipe"));
+    }
+
+    @Test
+    void deveFalharAoTentarAcharPessoa() throws Exception {
+        given(service.findById(any(Long.class))).willReturn(null);
+
+        mockMvc.perform(
+            get(API_PESSOA + "/1")
+            .accept(MediaType.APPLICATION_JSON)
+            .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(MockMvcResultMatchers.status().isNotFound());
+    }
+
+    @Test
+    void deveRemoverPessoaComSucesso() throws Exception {
+        mockMvc.perform(
+            delete(API_PESSOA + "/1")
+            .accept(MediaType.APPLICATION_JSON)
+            .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(MockMvcResultMatchers.status().isNoContent());
+
+        Mockito.verify(service, Mockito.times(1)).remove(1L);
+    }
+
+    @Test
+    void deveRemoverSemSucesso() throws Exception {
+        Mockito.doThrow(new NotFoundException(null)).when(service).remove(1L);        
+
+        mockMvc.perform(
+            delete(API_PESSOA + "/1")
+            .accept(MediaType.APPLICATION_JSON)
+            .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(MockMvcResultMatchers.status().isNotFound());
+
+    }
+
+    @Test
+    void deveBuscarPessoasPorNome() throws Exception {
+        var p1 = PessoaDTOBuilder.buildResponse();
+        p1.setId(1L);
+        var p2 = PessoaDTOBuilder.buildResponse();
+        p2.setId(2L);
+        p2.setNome("Felipe");
+
+        var responseEsperada = List.of(p1, p2);
+
+        given(service.findByNome("Felipe")).willReturn(responseEsperada);
+
+        mockMvc.perform(
+            get(API_PESSOA + "/nome/{nome}", "Felipe")
+            .accept(MediaType.APPLICATION_JSON)
+            .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(MockMvcResultMatchers.status().isOk())
+        .andExpect(jsonPath("$[0].id").value("1"))
+        .andExpect(jsonPath("$[1].nome").value("Felipe"));
     }
     
 }
